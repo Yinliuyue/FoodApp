@@ -1,10 +1,11 @@
+// lib/Views/my_app_home_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import '../Utils/constants.dart';
 import '../Utils/database_helper.dart';
-import '../models/category.dart';
-import '../models/food_item.dart';
+import 'package:miniapp/models/category.dart' as model;
+import 'package:miniapp/models/food_item.dart';
 import '../Widget/banner.dart';
 import '../Widget/my_icon_button.dart';
 import '../Widget/food_items_display.dart';
@@ -21,7 +22,7 @@ class MyAppHomeScreen extends StatefulWidget {
 
 class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
   String selectedCategory = "All"; // 默认选择 "All"
-  List<Category> categories = [];
+  List<model.Category> categories = [];
   late Future<List<FoodItem>> foodItemsFuture;
   String _searchQuery = '';
 
@@ -29,17 +30,20 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
   void initState() {
     super.initState();
     _loadCategories();
-    // 直接初始化 foodItemsFuture
+    // 初始化 foodItemsFuture，获取默认类别的食物项
     foodItemsFuture = DatabaseHelper().getFoodItems(
       category: selectedCategory == "All" ? null : selectedCategory,
     );
   }
 
-  // 加载类别数据
+  // 加载类别数据并在前面添加一个 "All" 类别
   Future<void> _loadCategories() async {
-    List<Category> fetchedCategories = await DatabaseHelper().getCategories();
+    List<model.Category> fetchedCategories = await DatabaseHelper().getCategories();
     setState(() {
-      categories = fetchedCategories;
+      categories = [
+        model.Category(id: 0, name: "All"),
+        ...fetchedCategories,
+      ];
     });
   }
 
@@ -95,59 +99,29 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
-                    children: [
-                      // "All" 类别按钮
-                      GestureDetector(
-                        onTap: () => _onCategorySelected("All"),
+                    children: categories.map((category) {
+                      bool isSelected = selectedCategory == category.name;
+                      return GestureDetector(
+                        onTap: () => _onCategorySelected(category.name),
                         child: Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(25),
-                            color: selectedCategory == "All"
-                                ? kprimaryColor
-                                : Colors.grey[200],
+                            color:
+                            isSelected ? kprimaryColor : Colors.grey[200],
                           ),
                           padding: const EdgeInsets.symmetric(
                               horizontal: 20, vertical: 10),
                           margin: const EdgeInsets.only(right: 15),
                           child: Text(
-                            "All",
+                            category.name,
                             style: TextStyle(
-                              color: selectedCategory == "All"
-                                  ? Colors.white
-                                  : Colors.black,
+                              color: isSelected ? Colors.white : Colors.black,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                      ),
-                      // 动态生成的类别按钮
-                      ...categories.map((category) {
-                        bool isSelected = selectedCategory == category.name;
-                        return GestureDetector(
-                          onTap: () => _onCategorySelected(category.name),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(25),
-                              color: isSelected
-                                  ? kprimaryColor
-                                  : Colors.grey[200],
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 10),
-                            margin: const EdgeInsets.only(right: 15),
-                            child: Text(
-                              category.name,
-                              style: TextStyle(
-                                color: isSelected
-                                    ? Colors.white
-                                    : Colors.black,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ],
+                      );
+                    }).toList(),
                   ),
                 ),
                 const SizedBox(height: 20),

@@ -1,5 +1,3 @@
-
-
 // lib/Widget/food_items_display.dart
 
 import 'package:flutter/material.dart';
@@ -15,7 +13,7 @@ class FoodItemsDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<FavoriteProvider>(context);
+    final favoriteProvider = Provider.of<FavoriteProvider>(context);
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -107,13 +105,13 @@ class FoodItemsDisplay extends StatelessWidget {
                 backgroundColor: Colors.white,
                 child: InkWell(
                   onTap: () {
-                    provider.toggleFavorite(foodItem);
+                    favoriteProvider.toggleFavorite(foodItem);
                   },
                   child: Icon(
-                    provider.isExist(foodItem)
+                    favoriteProvider.isExist(foodItem)
                         ? Iconsax.heart5
                         : Iconsax.heart,
-                    color: provider.isExist(foodItem)
+                    color: favoriteProvider.isExist(foodItem)
                         ? Colors.red
                         : Colors.black,
                     size: 20,
