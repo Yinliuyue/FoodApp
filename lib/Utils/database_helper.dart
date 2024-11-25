@@ -75,7 +75,7 @@ class DatabaseHelper {
       );
     ''');
 
-    // 创建食物项表，移除 ingredients 字段
+    // 创建食物项表
     await db.execute('''
       CREATE TABLE IF NOT EXISTS Complete_Flutter_App (
         id_every INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -122,8 +122,9 @@ class DatabaseHelper {
   Future<void> _insertInitialData(Database db) async {
     // 插入类别数据
     await db.insert('food_category', {'name': 'All'});
-    await db.insert('food_category', {'name': 'Category1'});
-    await db.insert('food_category', {'name': 'Category2'});
+    await db.insert('food_category', {'name': 'Breakfast'});
+    await db.insert('food_category', {'name': 'Lunch'});
+    await db.insert('food_category', {'name': 'Dinner'});
     // 插入更多类别或食物项
     print("初始数据已插入");
   }
@@ -234,6 +235,94 @@ class DatabaseHelper {
     });
   }
 
+  // 获取随机物品
+  Future<List<FoodItem>> getRandomItems({int limit = 10}) async {
+    final db = await database;
+    List<Map<String, dynamic>> maps = await db.query(
+      'Complete_Flutter_App',
+      orderBy: 'RANDOM()',
+      limit: limit,
+    );
+
+    return List.generate(maps.length, (i) => FoodItem.fromMap(maps[i]));
+  }
+
+  // 获取每个类别的随机物品
+  Future<List<FoodItem>> getRandomItemsFromEachCategory({int limitPerCategory = 2}) async {
+    final db = await database;
+    List<FoodItem> randomItems = [];
+
+    // 获取所有类别，排除 "All"
+    List<model.Category> categories = await getCategories();
+    categories = categories.where((category) => category.name != 'All').toList();
+
+    for (var category in categories) {
+      List<Map<String, dynamic>> maps = await db.query(
+        'Complete_Flutter_App',
+        where: 'category = ?',
+        whereArgs: [category.name],
+        orderBy: 'RANDOM()',
+        limit: limitPerCategory,
+      );
+
+      if (maps.isNotEmpty) {
+        randomItems.addAll(maps.map((map) => FoodItem.fromMap(map)).toList());
+      }
+    }
+
+    return randomItems;
+  }
+
+  // 获取“Quick & Easy”物品
+  Future<List<FoodItem>> getQuickEasyItems(String category, {int maxCalories = 500, int maxTime = 30}) async {
+    final db = await database;
+    List<Map<String, dynamic>> maps = await db.query(
+      'Complete_Flutter_App',
+      where: 'category = ? AND cal <= ? AND time <= ?',
+      whereArgs: [category, maxCalories, maxTime],
+      orderBy: 'RANDOM()',
+      limit: 5, // 根据需要调整
+    );
+
+    return List.generate(maps.length, (i) => FoodItem.fromMap(maps[i]));
+  }
+
+  // 获取推荐的物品，根据用户收藏的类别
+  Future<List<FoodItem>> getRecommendedItems({int limit = 10}) async {
+    final db = await database;
+
+    // 获取用户收藏的所有物品
+    List<FoodItem> favoriteItems = await getFavoriteFoodItems();
+
+    if (favoriteItems.isEmpty) {
+      // 如果没有收藏，随机推荐一些物品
+      return getRandomItems(limit: limit);
+    }
+
+    // 获取收藏物品的所有类别
+    Set<String> favoriteCategories = favoriteItems.map((item) => item.category).toSet();
+
+    // 获取已收藏的物品ID
+    Set<int> favoriteIds = favoriteItems.map((item) => item.idEvery).toSet();
+
+    // 构建WHERE子句
+    String categoryWhere = favoriteCategories.map((_) => '?').join(', ');
+    String excludeWhere = favoriteIds.map((_) => '?').join(', ');
+
+    List<dynamic> arguments = [...favoriteCategories, ...favoriteIds];
+
+    // 查询与收藏类别相同且不在收藏列表中的高评分物品
+    List<Map<String, dynamic>> maps = await db.rawQuery('''
+      SELECT * FROM Complete_Flutter_App
+      WHERE category IN ($categoryWhere)
+        AND id_every NOT IN ($excludeWhere)
+      ORDER BY rate DESC
+      LIMIT $limit
+    ''', arguments);
+
+    return List.generate(maps.length, (i) => FoodItem.fromMap(maps[i]));
+  }
+
   // 添加收藏
   Future<void> addFavorite(int foodItemId) async {
     final db = await database;
@@ -278,70 +367,5 @@ class DatabaseHelper {
     return List.generate(maps.length, (i) {
       return FoodItem.fromMap(maps[i]);
     });
-  }
-
-  // 获取同类别的推荐食物项，排除当前食物项
-  Future<List<FoodItem>> getRecommendedFoodItems(String category, int excludeId) async {
-    final db = await database;
-    List<Map<String, dynamic>> maps = await db.query(
-      'Complete_Flutter_App',
-      where: 'category = ? AND id_every != ?',
-      whereArgs: [category, excludeId],
-    );
-
-    if (maps.isEmpty) {
-      print('No recommended food items found for category "$category", excluding ID $excludeId');
-      return [];
-    } else {
-      print('Recommended food items for category "$category", excluding ID $excludeId:');
-      for (var row in maps) {
-        print(row);
-      }
-    }
-
-    return List.generate(maps.length, (i) {
-      return FoodItem.fromMap(maps[i]);
-    });
-  }
-
-  // 导出数据库文件到外部存储（可选）
-  Future<String> exportDatabase() async {
-    final db = await database;
-    Directory? externalDir = await getExternalStorageDirectory();
-    if (externalDir == null) {
-      throw Exception("无法获取外部存储目录");
-    }
-    String exportPath = join(externalDir.path, "minidb_export.db");
-    await db.close();
-    try {
-      await File(join(await getDatabasesPath(), 'minidb.db')).copy(exportPath);
-      print("数据库已导出到: $exportPath");
-      return exportPath;
-    } catch (e) {
-      print("导出数据库失败: $e");
-      throw e;
-    } finally {
-      // 重新打开数据库
-      _database = await openDatabase(
-        join(await getDatabasesPath(), 'minidb.db'),
-        version: 2,
-        onCreate: _onCreate,
-        onUpgrade: _onUpgrade,
-      );
-    }
-  }
-
-  // 导入数据库文件从外部存储（可选）
-  Future<void> importDatabase(String importPath) async {
-    final db = await database;
-    await db.close();
-    try {
-      await File(importPath).copy(join(await getDatabasesPath(), 'minidb.db'));
-      print("数据库已从 $importPath 导入");
-      _database = await _initDatabase(); // 重新初始化数据库
-    } catch (e) {
-      print("导入数据库失败: $e");
-      throw e;
-    }
   }
 }

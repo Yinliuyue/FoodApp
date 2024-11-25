@@ -26,16 +26,17 @@ class FoodItemsDisplay extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(right: 10),
         width: 230,
+        height: 250,  // 增加容器的高度
         child: Stack(
           children: [
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Hero(
-                  tag: foodItem.imagePath, // 使用 imagePath 作为 Hero tag
+                  tag: foodItem.imagePath, // 使用 imagePath 作为 Hero 标签
                   child: Container(
                     width: double.infinity,
-                    height: 160,
+                    height: 140, // 调整图片高度
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(15),
                       image: DecorationImage(
@@ -48,52 +49,59 @@ class FoodItemsDisplay extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Text(
-                  foodItem.name,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
+                // 使用 Flexible 包裹 Text，防止溢出
+                Flexible(
+                  child: Text(
+                    foodItem.name,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis, // 防止文本溢出
                   ),
                 ),
                 const SizedBox(height: 5),
-                Row(
-                  children: [
-                    const Icon(
-                      Iconsax.flash_1,
-                      size: 16,
-                      color: Colors.grey,
-                    ),
-                    Text(
-                      "${foodItem.cal} Cal",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                // 使用 Flexible 包裹 Row，防止溢出
+                Flexible(
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Iconsax.flash_1,
+                        size: 16,
                         color: Colors.grey,
                       ),
-                    ),
-                    const Text(
-                      " · ",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
+                      Text(
+                        "${foodItem.cal} Cal",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const Text(
+                        " · ",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const Icon(
+                        Iconsax.clock,
+                        size: 16,
                         color: Colors.grey,
                       ),
-                    ),
-                    const Icon(
-                      Iconsax.clock,
-                      size: 16,
-                      color: Colors.grey,
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      "${foodItem.time} Min",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                        color: Colors.grey,
+                      const SizedBox(width: 5),
+                      Text(
+                        "${foodItem.time} Min",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
                       ),
-                    ),
-                  ],
-                )
+                    ],
+                  ),
+                ),
               ],
             ),
             // 收藏按钮

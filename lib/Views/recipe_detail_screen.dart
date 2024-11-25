@@ -3,13 +3,10 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import '../Provider/favorite_provider.dart';
-import '../Provider/quantity.dart';
 import '../Utils/constants.dart';
 import '../Utils/database_helper.dart'; // 引入 DatabaseHelper
 import '../models/food_item.dart';
-import '../Widget/food_items_display.dart';
 import '../Widget/my_icon_button.dart';
-import '../Widget/quantity_increment_decrement.dart';
 import 'package:provider/provider.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
@@ -26,25 +23,27 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   @override
   void initState() {
     super.initState();
-    // 初始化数量提供者（此处无需设置 ingredients）
-    Provider.of<QuantityProvider>(context, listen: false)
-        .setBaseIngredientAmounts([]); // 空列表，因为已移除 ingredients
-
-    // 获取同类别的推荐食物项
-    recommendedFuture = DatabaseHelper().getRecommendedFoodItems(
-      widget.foodItem.category,
-      widget.foodItem.idEvery,
-    );
+    // 获取基于收藏的推荐物品
+    recommendedFuture = DatabaseHelper().getRecommendedItems();
   }
 
   @override
   Widget build(BuildContext context) {
     final favoriteProvider = Provider.of<FavoriteProvider>(context);
-    final quantityProvider = Provider.of<QuantityProvider>(context);
+    // 获取屏幕尺寸
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // 根据屏幕宽度计算尺寸比例
+    double imageHeight = screenHeight / 2.5; // 调整图片高度
+    double foodImageWidth = screenWidth * 0.4; // 食物图片宽度
+    double foodImageHeight = imageHeight * 0.5; // 食物图片高度
+    double textFontSize = screenWidth * 0.05; // 食物名称字体大小
+    double infoFontSize = screenWidth * 0.035; // 其他信息字体大小
 
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: startCookingAndFavoriteButton(favoriteProvider),
+      floatingActionButton: startCookingAndFavoriteButton(favoriteProvider, screenWidth),
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Column(
@@ -55,7 +54,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                 Hero(
                   tag: widget.foodItem.imagePath,
                   child: Container(
-                    height: MediaQuery.of(context).size.height / 2.1,
+                    height: imageHeight,
+                    width: double.infinity,
                     decoration: BoxDecoration(
                       image: DecorationImage(
                         fit: BoxFit.cover,
@@ -87,17 +87,27 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     ],
                   ),
                 ),
-                // 下方装饰容器
+                // 下方装饰容器（如需要添加其他装饰可以在这里）
                 Positioned(
                   left: 0,
                   right: 0,
-                  top: MediaQuery.of(context).size.width,
+                  top: imageHeight - 20, // 确保装饰容器紧贴图片底部
                   child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
+                    height: 40, // 根据需要调整高度
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.3),
+                          spreadRadius: 5,
+                          blurRadius: 7,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -106,123 +116,113 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             // 拖动手柄
             Center(
               child: Container(
-                width: 40,
-                height: 8,
+                width: screenWidth * 0.1, // 响应式宽度
+                height: screenWidth * 0.02, // 响应式高度
                 decoration: BoxDecoration(
                   color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: screenHeight * 0.02),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 食物名称
                   Text(
                     widget.foodItem.name,
-                    style: const TextStyle(
-                      fontSize: 24,
+                    style: TextStyle(
+                      fontSize: textFontSize, // 响应式字体大小
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: screenHeight * 0.01),
                   // 卡路里和时间
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Iconsax.flash_1,
-                        size: 20,
+                        size: screenWidth * 0.05, // 响应式图标大小
                         color: Colors.grey,
                       ),
+                      SizedBox(width: screenWidth * 0.01),
                       Text(
                         "${widget.foodItem.cal} Cal",
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                          fontSize: infoFontSize, // 响应式字体大小
                           color: Colors.grey,
                         ),
                       ),
-                      const Text(
+                      Text(
                         " · ",
                         style: TextStyle(
                           fontWeight: FontWeight.w900,
                           color: Colors.grey,
+                          fontSize: infoFontSize,
                         ),
                       ),
-                      const Icon(
+                      Icon(
                         Iconsax.clock,
-                        size: 20,
+                        size: screenWidth * 0.05,
                         color: Colors.grey,
                       ),
-                      const SizedBox(width: 5),
+                      SizedBox(width: screenWidth * 0.005),
                       Text(
                         "${widget.foodItem.time} Min",
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                          fontSize: infoFontSize,
                           color: Colors.grey,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: screenHeight * 0.01),
                   // 评分
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Iconsax.star1,
                         color: Colors.amberAccent,
+                        size: screenWidth * 0.05,
                       ),
-                      const SizedBox(width: 5),
+                      SizedBox(width: screenWidth * 0.01),
                       Text(
                         widget.foodItem.rate.toString(),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
+                          fontSize: infoFontSize,
                         ),
                       ),
-                      const Text("/5"),
-                      const SizedBox(width: 5),
+                      Text(
+                        "/5",
+                        style: TextStyle(
+                          fontSize: infoFontSize,
+                        ),
+                      ),
+                      SizedBox(width: screenWidth * 0.01),
                       Text(
                         "${widget.foodItem.reviews} Reviews",
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.grey,
+                          fontSize: infoFontSize,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  // 推荐部分标题和数量选择器
-                  Row(
-                    children: [
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Recommended",
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(height: 10),
-                          Text(
-                            "Other recommendations from the same category",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
-                          )
-                        ],
-                      ),
-                      const Spacer(),
-                      // 可选：如果需要数量选择器，可以保留或移除
-                      // 此处不需要，因为已删除 ingredients
-                    ],
+                  SizedBox(height: screenHeight * 0.03),
+                  // 推荐部分标题
+                  Text(
+                    "推荐",
+                    style: TextStyle(
+                      fontSize: textFontSize, // 响应式字体大小
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: screenHeight * 0.015),
                   // 推荐食物项列表
                   FutureBuilder<List<FoodItem>>(
                     future: recommendedFuture,
@@ -232,56 +232,27 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       } else if (snapshot.hasError) {
                         return Text('Error: ${snapshot.error}');
                       } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                        return const Text('No recommendations available');
+                        return const Text('没有推荐的物品');
                       } else {
                         List<FoodItem> recommended = snapshot.data!;
-                        return Column(
-                          children: recommended.map((item) {
-                            return GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        RecipeDetailScreen(foodItem: item),
-                                  ),
-                                );
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 60,
-                                      height: 60,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(15),
-                                        image: DecorationImage(
-                                          fit: BoxFit.cover,
-                                          image: AssetImage(
-                                            'assets/images/${item.imagePath}',
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 15),
-                                    Text(
-                                      item.name,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }).toList(),
+                        return SizedBox(
+                          height: foodImageHeight * 2, // 根据需要调整高度
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: recommended.length,
+                            itemBuilder: (context, index) {
+                              final item = recommended[index];
+                              return FoodItemsDisplay(
+                                foodItem: item,
+                                screenWidth: screenWidth,
+                              );
+                            },
+                          ),
                         );
                       }
                     },
                   ),
-                  const SizedBox(height: 40),
+                  SizedBox(height: screenHeight * 0.05),
                 ],
               ),
             ),
@@ -291,8 +262,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     );
   }
 
-  FloatingActionButton startCookingAndFavoriteButton(
-      FavoriteProvider provider) {
+  FloatingActionButton startCookingAndFavoriteButton(FavoriteProvider provider, double screenWidth) {
     return FloatingActionButton.extended(
       backgroundColor: Colors.transparent,
       elevation: 0,
@@ -301,20 +271,23 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         children: [
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-                backgroundColor: kprimaryColor,
-                padding:
-                const EdgeInsets.symmetric(horizontal: 100, vertical: 13),
-                foregroundColor: Colors.white),
+              backgroundColor: kprimaryColor,
+              padding: EdgeInsets.symmetric(
+                horizontal: screenWidth * 0.25, // 响应式水平间距
+                vertical: screenWidth * 0.03,      // 响应式垂直间距
+              ),
+              foregroundColor: Colors.white,
+            ),
             onPressed: () {},
-            child: const Text(
+            child: Text(
               "Start Cooking",
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 17,
+                fontSize: screenWidth * 0.045, // 响应式字体大小
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: screenWidth * 0.02), // 响应式间距
           IconButton(
             style: IconButton.styleFrom(
               shape: const CircleBorder(
@@ -334,8 +307,86 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               color: provider.isExist(widget.foodItem)
                   ? Colors.red
                   : Colors.black,
-              size: 22,
+              size: screenWidth * 0.05, // 响应式图标大小
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// 添加 FoodItemsDisplay 组件到同一文件中，并进行响应式设计
+class FoodItemsDisplay extends StatelessWidget {
+  final FoodItem foodItem;
+  final double screenWidth;
+
+  const FoodItemsDisplay({
+    Key? key,
+    required this.foodItem,
+    required this.screenWidth,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // 根据屏幕宽度调整组件尺寸
+    double containerWidth = screenWidth * 0.4; // 40%屏幕宽度
+    double imageHeight = containerWidth * 0.6;  // 60%宽度作为高度
+    double iconSize = screenWidth * 0.04;       // 图标大小
+    double fontSize = screenWidth * 0.035;      // 字体大小
+
+    return Container(
+      width: containerWidth,
+      margin: EdgeInsets.only(right: screenWidth * 0.03), // 响应式右边距
+      child: Column(
+        mainAxisSize: MainAxisSize.min, // 不占用超出子项的空间
+        crossAxisAlignment: CrossAxisAlignment.start, // 左对齐
+        children: [
+          // 食物图片
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.asset(
+              'assets/images/${foodItem.imagePath}',
+              width: containerWidth,
+              height: imageHeight, // 固定高度，防止溢出
+              fit: BoxFit.cover,
+            ),
+          ),
+          SizedBox(height: screenWidth * 0.02), // 响应式间距
+          // 食物名称
+          Text(
+            foodItem.name,
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+            ),
+            maxLines: 1, // 限制为一行
+            overflow: TextOverflow.ellipsis, // 溢出时显示省略号
+          ),
+          SizedBox(height: screenWidth * 0.01), // 响应式间距
+          // 其他信息
+          Row(
+            children: [
+              Icon(Icons.flash_on, size: iconSize, color: Colors.grey),
+              SizedBox(width: screenWidth * 0.01),
+              Text(
+                "${foodItem.cal} Cal",
+                style: TextStyle(
+                  fontSize: fontSize * 0.9,
+                  color: Colors.grey,
+                ),
+              ),
+              SizedBox(width: screenWidth * 0.02),
+              Icon(Icons.timer, size: iconSize, color: Colors.grey),
+              SizedBox(width: screenWidth * 0.01),
+              Text(
+                "${foodItem.time} Min",
+                style: TextStyle(
+                  fontSize: fontSize * 0.9,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
           ),
         ],
       ),

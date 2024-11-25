@@ -1,24 +1,19 @@
-
 // lib/main.dart
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'Provider/favorite_provider.dart';
 import 'Provider/quantity.dart';
+import 'Utils/constants.dart';
 import 'Views/app_main_screen.dart';
-import 'Utils/database_helper.dart'; // 引入数据库助手
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // 初始化数据库
-  await DatabaseHelper().database;
-
+void main() {
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => FavoriteProvider()),
         ChangeNotifierProvider(create: (_) => QuantityProvider()),
+        // 注册其他 Provider 如有需要
       ],
       child: const MyApp(),
     ),
@@ -28,13 +23,16 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // 应用的根部件
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: AppMainScreen(),
+    return MaterialApp(
+      title: 'MiniApp',
+      theme: ThemeData(
+        primaryColor: kprimaryColor,
+        scaffoldBackgroundColor: kbackgroundColor,
+        // 配置其他主题参数
+      ),
+      home: const AppMainScreen(),
     );
   }
 }
-
