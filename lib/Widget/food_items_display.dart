@@ -14,6 +14,16 @@ class FoodItemsDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final favoriteProvider = Provider.of<FavoriteProvider>(context);
+
+    // 获取屏幕宽度
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // 根据屏幕宽度调整组件尺寸
+    double containerWidth = screenWidth * 0.6; // 比如 60% 屏幕宽度
+    double imageHeight = containerWidth * 0.6;  // 60% 宽度作为高度
+    double iconSize = screenWidth * 0.04;       // 图标大小
+    double fontSize = screenWidth * 0.035;      // 字体大小
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -24,9 +34,9 @@ class FoodItemsDisplay extends StatelessWidget {
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(right: 10),
-        width: 230,
-        height: 250,  // 增加容器的高度
+        margin: EdgeInsets.only(right: screenWidth * 0.03), // 响应式右边距
+        width: containerWidth,
+        height: imageHeight + 110,  // 动态调整高度
         child: Stack(
           children: [
             Column(
@@ -36,7 +46,7 @@ class FoodItemsDisplay extends StatelessWidget {
                   tag: foodItem.imagePath, // 使用 imagePath 作为 Hero 标签
                   child: Container(
                     width: double.infinity,
-                    height: 140, // 调整图片高度
+                    height: imageHeight, // 动态调整图片高度
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(15),
                       image: DecorationImage(
@@ -48,54 +58,56 @@ class FoodItemsDisplay extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: screenWidth * 0.02),
                 // 使用 Flexible 包裹 Text，防止溢出
                 Flexible(
                   child: Text(
                     foodItem.name,
-                    style: const TextStyle(
-                      fontSize: 17,
+                    style: TextStyle(
+                      fontSize: fontSize,
                       fontWeight: FontWeight.bold,
                     ),
                     overflow: TextOverflow.ellipsis, // 防止文本溢出
                   ),
                 ),
-                const SizedBox(height: 5),
+                SizedBox(height: screenWidth * 0.01),
                 // 使用 Flexible 包裹 Row，防止溢出
                 Flexible(
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Iconsax.flash_1,
-                        size: 16,
+                        size: iconSize,
                         color: Colors.grey,
                       ),
+                      SizedBox(width: screenWidth * 0.01),
                       Text(
                         "${foodItem.cal} Cal",
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                          fontSize: fontSize * 0.85,
                           color: Colors.grey,
                         ),
                       ),
-                      const Text(
+                      Text(
                         " · ",
                         style: TextStyle(
                           fontWeight: FontWeight.w900,
                           color: Colors.grey,
+                          fontSize: fontSize * 0.85,
                         ),
                       ),
-                      const Icon(
+                      Icon(
                         Iconsax.clock,
-                        size: 16,
+                        size: iconSize,
                         color: Colors.grey,
                       ),
-                      const SizedBox(width: 5),
+                      SizedBox(width: screenWidth * 0.005),
                       Text(
                         "${foodItem.time} Min",
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                          fontSize: fontSize * 0.85,
                           color: Colors.grey,
                         ),
                       ),
@@ -106,10 +118,10 @@ class FoodItemsDisplay extends StatelessWidget {
             ),
             // 收藏按钮
             Positioned(
-              top: 5,
-              right: 5,
+              top: screenWidth * 0.01,
+              right: screenWidth * 0.01,
               child: CircleAvatar(
-                radius: 18,
+                radius: screenWidth * 0.045, // 动态调整半径
                 backgroundColor: Colors.white,
                 child: InkWell(
                   onTap: () {
@@ -122,7 +134,7 @@ class FoodItemsDisplay extends StatelessWidget {
                     color: favoriteProvider.isExist(foodItem)
                         ? Colors.red
                         : Colors.black,
-                    size: 20,
+                    size: screenWidth * 0.05, // 动态调整图标大小
                   ),
                 ),
               ),

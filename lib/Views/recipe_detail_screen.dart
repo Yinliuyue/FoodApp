@@ -7,6 +7,7 @@ import '../Utils/constants.dart';
 import '../Utils/database_helper.dart'; // 引入 DatabaseHelper
 import '../models/food_item.dart';
 import '../Widget/my_icon_button.dart';
+import '../Widget/food_items_display.dart'; // 确保引入 FoodItemsDisplay 组件
 import 'package:provider/provider.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
@@ -36,7 +37,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
     // 根据屏幕宽度计算尺寸比例
     double imageHeight = screenHeight / 2.5; // 调整图片高度
-    double foodImageWidth = screenWidth * 0.4; // 食物图片宽度
     double foodImageHeight = imageHeight * 0.5; // 食物图片高度
     double textFontSize = screenWidth * 0.05; // 食物名称字体大小
     double infoFontSize = screenWidth * 0.035; // 其他信息字体大小
@@ -214,6 +214,21 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     ],
                   ),
                   SizedBox(height: screenHeight * 0.03),
+
+                  // 添加“简介”部分
+                  SectionBox(
+                    title: "简介",
+                    content: widget.foodItem.introduction,
+                  ),
+                  SizedBox(height: screenHeight * 0.02),
+
+                  // 添加“具体内容”部分
+                  SectionBox(
+                    title: "具体内容",
+                    content: widget.foodItem.content,
+                  ),
+                  SizedBox(height: screenHeight * 0.03),
+
                   // 推荐部分标题
                   Text(
                     "推荐",
@@ -244,7 +259,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                               final item = recommended[index];
                               return FoodItemsDisplay(
                                 foodItem: item,
-                                screenWidth: screenWidth,
+                                // 不需要传递 screenWidth 参数
                               );
                             },
                           ),
@@ -316,77 +331,56 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   }
 }
 
-// 添加 FoodItemsDisplay 组件到同一文件中，并进行响应式设计
-class FoodItemsDisplay extends StatelessWidget {
-  final FoodItem foodItem;
-  final double screenWidth;
+/// 自定义的章节展示组件，包含标题和内容
+class SectionBox extends StatelessWidget {
+  final String title;
+  final String content;
 
-  const FoodItemsDisplay({
+  const SectionBox({
     Key? key,
-    required this.foodItem,
-    required this.screenWidth,
+    required this.title,
+    required this.content,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // 根据屏幕宽度调整组件尺寸
-    double containerWidth = screenWidth * 0.4; // 40%屏幕宽度
-    double imageHeight = containerWidth * 0.6;  // 60%宽度作为高度
-    double iconSize = screenWidth * 0.04;       // 图标大小
-    double fontSize = screenWidth * 0.035;      // 字体大小
+    // 获取屏幕宽度以进行响应式设计（可选）
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Container(
-      width: containerWidth,
-      margin: EdgeInsets.only(right: screenWidth * 0.03), // 响应式右边距
+      padding: EdgeInsets.all(screenWidth * 0.04), // 使用相对单位
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100, // 背景色
+        borderRadius: BorderRadius.circular(10), // 圆角
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 2,
+            blurRadius: 5,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       child: Column(
-        mainAxisSize: MainAxisSize.min, // 不占用超出子项的空间
-        crossAxisAlignment: CrossAxisAlignment.start, // 左对齐
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 食物图片
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Image.asset(
-              'assets/images/${foodItem.imagePath}',
-              width: containerWidth,
-              height: imageHeight, // 固定高度，防止溢出
-              fit: BoxFit.cover,
-            ),
-          ),
-          SizedBox(height: screenWidth * 0.02), // 响应式间距
-          // 食物名称
+          // 标题
           Text(
-            foodItem.name,
+            title,
             style: TextStyle(
-              fontSize: fontSize,
-              fontWeight: FontWeight.bold,
+              fontSize: screenWidth * 0.045, // 响应式字体大小
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
             ),
-            maxLines: 1, // 限制为一行
-            overflow: TextOverflow.ellipsis, // 溢出时显示省略号
           ),
-          SizedBox(height: screenWidth * 0.01), // 响应式间距
-          // 其他信息
-          Row(
-            children: [
-              Icon(Icons.flash_on, size: iconSize, color: Colors.grey),
-              SizedBox(width: screenWidth * 0.01),
-              Text(
-                "${foodItem.cal} Cal",
-                style: TextStyle(
-                  fontSize: fontSize * 0.9,
-                  color: Colors.grey,
-                ),
-              ),
-              SizedBox(width: screenWidth * 0.02),
-              Icon(Icons.timer, size: iconSize, color: Colors.grey),
-              SizedBox(width: screenWidth * 0.01),
-              Text(
-                "${foodItem.time} Min",
-                style: TextStyle(
-                  fontSize: fontSize * 0.9,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
+          SizedBox(height: screenWidth * 0.02),
+          // 内容
+          Text(
+            content,
+            style: TextStyle(
+              fontSize: screenWidth * 0.035, // 响应式字体大小
+              color: Colors.black54,
+            ),
           ),
         ],
       ),

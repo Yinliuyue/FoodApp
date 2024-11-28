@@ -85,7 +85,9 @@ class DatabaseHelper {
         image_path TEXT NOT NULL,
         rate REAL NOT NULL,
         reviews INTEGER NOT NULL,
-        time INTEGER NOT NULL
+        time INTEGER NOT NULL,
+        introduction TEXT NOT NULL,
+        content TEXT NOT NULL
       );
     ''');
 

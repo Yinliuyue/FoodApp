@@ -9,6 +9,8 @@ class FoodItem {
   final double rate;
   final int reviews;
   final int time;
+  final String introduction;
+  final String content;
 
   FoodItem({
     required this.idEvery,
@@ -19,6 +21,8 @@ class FoodItem {
     required this.rate,
     required this.reviews,
     required this.time,
+    required this.introduction,
+    required this.content,
   });
 
   factory FoodItem.fromMap(Map<String, dynamic> map) {
@@ -31,6 +35,8 @@ class FoodItem {
       rate: (map['rate'] as num).toDouble(),
       reviews: map['reviews'] as int,
       time: map['time'] as int,
+      introduction: map['introduction'] as String,
+      content: map['content'] as String,
     );
   }
 
@@ -44,6 +50,8 @@ class FoodItem {
       'rate': rate,
       'reviews': reviews,
       'time': time,
+      'introduction': introduction,
+      'content': content,
     };
   }
 
@@ -56,6 +64,8 @@ class FoodItem {
     double? rate,
     int? reviews,
     int? time,
+    String? introduction,
+    String? content,
   }) {
     return FoodItem(
       idEvery: idEvery ?? this.idEvery,
@@ -66,6 +76,8 @@ class FoodItem {
       rate: rate ?? this.rate,
       reviews: reviews ?? this.reviews,
       time: time ?? this.time,
+      introduction: introduction??this.introduction,
+      content: content??this.content,
     );
   }
 }
