@@ -33,27 +33,21 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
   bool isLoadingAllCategory = true;
   bool isLoadingSearch = false; // 搜索加载状态
   String searchQuery = ""; // 当前搜索查询
-  // TextEditingController _searchController = TextEditingController(); // 移除搜索控制器
 
   @override
   void initState() {
     super.initState();
     _loadCategories();
-    // _searchController.addListener(() {
-    //   _onSearchChanged(_searchController.text);
-    // });
   }
 
   @override
   void dispose() {
-    // _searchController.dispose();
     super.dispose();
   }
 
   // 加载类别数据
   Future<void> _loadCategories() async {
-    List<model.Category> fetchedCategories =
-    await DatabaseHelper().getCategories();
+    List<model.Category> fetchedCategories = await DatabaseHelper().getCategories();
     print("Fetched Categories: ${fetchedCategories.map((c) => c.name).toList()}");
 
     setState(() {
@@ -73,16 +67,13 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
       print('Fetching content for category: $selectedCategory'); // 调试日志
       if (selectedCategory == "所有") {
         // 获取随机物品
-        List<FoodItem> fetchedRandomItems =
-        await DatabaseHelper().getRandomItemsFromEachCategory(
-            limitPerCategory: 2);
+        List<FoodItem> fetchedRandomItems = await DatabaseHelper().getRandomItemsFromEachCategory(limitPerCategory: 2);
 
         // 去重 (确保 FoodItem 实现了 == 和 hashCode)
         fetchedRandomItems = fetchedRandomItems.toSet().toList();
 
         // 获取所有类别的所有物品
-        List<FoodItem> fetchedAllCategoryItems =
-        await DatabaseHelper().getFoodItems();
+        List<FoodItem> fetchedAllCategoryItems = await DatabaseHelper().getFoodItems();
         fetchedAllCategoryItems = fetchedAllCategoryItems.toSet().toList();
 
         setState(() {
@@ -99,16 +90,14 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
         });
       } else {
         // 获取“快速简单”物品
-        List<FoodItem> fetchedQuickEasy =
-        await DatabaseHelper().getQuickEasyItems(
+        List<FoodItem> fetchedQuickEasy = await DatabaseHelper().getQuickEasyItems(
           selectedCategory,
           maxCalories: 500,
           maxTime: 30,
         );
 
         // 获取该类别的所有物品
-        List<FoodItem> fetchedCategoryItems =
-        await DatabaseHelper().getFoodItems(category: selectedCategory);
+        List<FoodItem> fetchedCategoryItems = await DatabaseHelper().getFoodItems(category: selectedCategory);
 
         setState(() {
           quickEasyItems = fetchedQuickEasy;
@@ -136,7 +125,6 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
       isLoadingCategory = selectedCategory != "所有";
       isLoadingAllCategory = selectedCategory == "所有";
       searchQuery = "";
-      // _searchController.clear();
       searchResults = [];
     });
     _fetchContent();
@@ -370,9 +358,9 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
           ),
         ),
         SizedBox(height: quickEasyItems.isEmpty ? 0 : 20),
-        // 该类别的所有物品部分
+        // 该类别的收藏物品部分标题
         Text(
-          "$selectedCategory总览",
+          "总览",
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         // 查看全部按钮
@@ -381,7 +369,6 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
           children: [
             TextButton(
               onPressed: () async {
-                // 打开弹窗只显示该类别的所有物品，不再显示推荐物品
                 showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,
@@ -390,74 +377,67 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       height: MediaQuery.of(context).size.height * 0.8,
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // 标题
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: FutureBuilder<List<FoodItem>>(
+                        future: DatabaseHelper().getFavoriteFoodItemsByCategory(selectedCategory),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(child: CircularProgressIndicator());
+                          } else if (snapshot.hasError) {
+                            return Text('错误: ${snapshot.error}');
+                          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                            return const Text('该类别中没有收藏的物品');
+                          } else {
+                            // 去重类别物品
+                            List<FoodItem> uniqueFavorites = snapshot.data!.toSet().toList();
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  "$selectedCategory 类别的所有物品",
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                // 标题
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      "我收藏的$selectedCategory",
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.close),
+                                      onPressed: () => Navigator.pop(context),
+                                    ),
+                                  ],
                                 ),
-                                IconButton(
-                                  icon: Icon(Icons.close),
-                                  onPressed: () => Navigator.pop(context),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            // 该类别的所有物品列表
-                            FutureBuilder<List<FoodItem>>(
-                              future: DatabaseHelper()
-                                  .getFoodItems(category: selectedCategory),
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState ==
-                                    ConnectionState.waiting) {
-                                  return const Center(
-                                      child: CircularProgressIndicator());
-                                } else if (snapshot.hasError) {
-                                  return Text('错误: ${snapshot.error}');
-                                } else if (!snapshot.hasData ||
-                                    snapshot.data!.isEmpty) {
-                                  return const Text('该类别中没有物品');
-                                } else {
-                                  // 去重类别物品
-                                  List<FoodItem> uniqueCategory =
-                                  snapshot.data!.toSet().toList();
-                                  return GridView.builder(
-                                    itemCount: uniqueCategory.length,
+                                const SizedBox(height: 10),
+                                // 收藏物品列表
+                                Expanded(
+                                  child: GridView.builder(
+                                    itemCount: uniqueFavorites.length,
                                     shrinkWrap: true, // 自适应高度
                                     physics: NeverScrollableScrollPhysics(),
-                                    gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                       crossAxisCount: 2,
                                       childAspectRatio: 3 / 4,
                                       crossAxisSpacing: 10,
                                       mainAxisSpacing: 10,
                                     ),
                                     itemBuilder: (context, index) {
-                                      return FoodItemsDisplay(
-                                          foodItem: uniqueCategory[index]);
+                                      return FoodItemsDisplay(foodItem: uniqueFavorites[index]);
                                     },
-                                  );
-                                }
-                              },
-                            ),
-                          ],
-                        ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
+                        },
                       ),
                     ),
                   ),
                 );
               },
               child: const Text(
-                "查看全部", // 将 "View All" 替换为中文 "查看全部"
+                "查看收藏",
                 style: TextStyle(
                   color: kprimaryColor,
                   fontWeight: FontWeight.bold,
@@ -490,25 +470,5 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
       ],
     );
   }
-
-// // 头部组件（已移除）
-// Row headerParts() {
-//   return Row(
-//     children: [
-//       const Text(
-//         "今天你想做什么？",
-//         style: TextStyle(
-//           fontSize: 32,
-//           fontWeight: FontWeight.bold,
-//           height: 1,
-//         ),
-//       ),
-//       const Spacer(),
-//       MyIconButton(
-//         icon: Iconsax.notification, // 指定按钮图标
-//         pressed: () {},
-//       ),
-//     ],
-//   );
-// }
 }
+
