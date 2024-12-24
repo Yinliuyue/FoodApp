@@ -20,69 +20,109 @@ class MyAppHomeScreen extends StatefulWidget {
 }
 
 class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
-  String selectedCategory = "All"; // 默认选择 "All"
+  String selectedCategory = "所有"; // 默认选择 "所有"
   List<model.Category> categories = [];
   List<FoodItem> randomItems = [];
   List<FoodItem> quickEasyItems = [];
   List<FoodItem> categoryItems = [];
+  List<FoodItem> allCategoryItems = []; // 用于展示所有类别的所有物品
+  List<FoodItem> searchResults = []; // 搜索结果
   bool isLoadingRandom = true;
   bool isLoadingQuickEasy = true;
   bool isLoadingCategory = true;
+  bool isLoadingAllCategory = true;
+  bool isLoadingSearch = false; // 搜索加载状态
+  String searchQuery = ""; // 当前搜索查询
+  // TextEditingController _searchController = TextEditingController(); // 移除搜索控制器
 
   @override
   void initState() {
     super.initState();
     _loadCategories();
-    // 移除此行，避免重复调用 _fetchContent
-    // _fetchContent();
+    // _searchController.addListener(() {
+    //   _onSearchChanged(_searchController.text);
+    // });
   }
 
-  // 加载类别数据并在前面添加一个 "All" 类别
+  @override
+  void dispose() {
+    // _searchController.dispose();
+    super.dispose();
+  }
+
+  // 加载类别数据
   Future<void> _loadCategories() async {
-    List<model.Category> fetchedCategories = await DatabaseHelper().getCategories();
+    List<model.Category> fetchedCategories =
+    await DatabaseHelper().getCategories();
+    print("Fetched Categories: ${fetchedCategories.map((c) => c.name).toList()}");
+
     setState(() {
-      categories = [
-        model.Category(id: 0, name: "All"),
-        ...fetchedCategories,
-      ];
+      categories = fetchedCategories;
     });
+
     _fetchContent(); // 在加载类别后唯一调用
   }
 
-  // 根据选中类别获取内容
+  // 根据选中类别或搜索查询获取内容
   Future<void> _fetchContent() async {
-    print('Fetching content for category: $selectedCategory'); // 调试日志
-    if (selectedCategory == "All") {
-      // 获取随机物品
-      List<FoodItem> fetchedRandomItems = await DatabaseHelper().getRandomItemsFromEachCategory(limitPerCategory: 2);
-
-      // 去重 (确保 FoodItem 实现了 == 和 hashCode)
-      fetchedRandomItems = fetchedRandomItems.toSet().toList();
-
-      setState(() {
-        randomItems = fetchedRandomItems;
-        isLoadingRandom = false;
-        // 清空其他列表
-        quickEasyItems = [];
-        categoryItems = [];
-        isLoadingQuickEasy = false;
-        isLoadingCategory = false;
-      });
+    if (searchQuery.isNotEmpty) {
+      // 如果有搜索查询，获取搜索结果
+      await _fetchSearchResults();
     } else {
-      // 获取“Quick & Easy”物品
-      List<FoodItem> fetchedQuickEasy = await DatabaseHelper().getQuickEasyItems(selectedCategory, maxCalories: 500, maxTime: 30);
-      // 获取该类别的所有物品
-      List<FoodItem> fetchedCategoryItems = await DatabaseHelper().getFoodItems(category: selectedCategory);
+      // 没有搜索查询，根据选中类别获取内容
+      print('Fetching content for category: $selectedCategory'); // 调试日志
+      if (selectedCategory == "所有") {
+        // 获取随机物品
+        List<FoodItem> fetchedRandomItems =
+        await DatabaseHelper().getRandomItemsFromEachCategory(
+            limitPerCategory: 2);
 
-      setState(() {
-        quickEasyItems = fetchedQuickEasy;
-        categoryItems = fetchedCategoryItems;
-        isLoadingQuickEasy = false;
-        isLoadingCategory = false;
-        // 清空随机物品
-        randomItems = [];
-        isLoadingRandom = false;
-      });
+        // 去重 (确保 FoodItem 实现了 == 和 hashCode)
+        fetchedRandomItems = fetchedRandomItems.toSet().toList();
+
+        // 获取所有类别的所有物品
+        List<FoodItem> fetchedAllCategoryItems =
+        await DatabaseHelper().getFoodItems();
+        fetchedAllCategoryItems = fetchedAllCategoryItems.toSet().toList();
+
+        setState(() {
+          randomItems = fetchedRandomItems;
+          allCategoryItems = fetchedAllCategoryItems;
+          isLoadingRandom = false;
+          isLoadingAllCategory = false;
+
+          // 清空其他列表
+          quickEasyItems = [];
+          categoryItems = [];
+          isLoadingQuickEasy = false;
+          isLoadingCategory = false;
+        });
+      } else {
+        // 获取“快速简单”物品
+        List<FoodItem> fetchedQuickEasy =
+        await DatabaseHelper().getQuickEasyItems(
+          selectedCategory,
+          maxCalories: 500,
+          maxTime: 30,
+        );
+
+        // 获取该类别的所有物品
+        List<FoodItem> fetchedCategoryItems =
+        await DatabaseHelper().getFoodItems(category: selectedCategory);
+
+        setState(() {
+          quickEasyItems = fetchedQuickEasy;
+          categoryItems = fetchedCategoryItems;
+          isLoadingQuickEasy = false;
+          isLoadingCategory = false;
+
+          // 清空随机物品和所有类别物品
+          randomItems = [];
+          allCategoryItems = [];
+          isLoadingRandom = false;
+          isLoadingAllCategory = false;
+        });
+      }
     }
   }
 
@@ -91,20 +131,60 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
     setState(() {
       selectedCategory = category;
       // 重置加载状态
-      isLoadingRandom = selectedCategory == "All";
-      isLoadingQuickEasy = selectedCategory != "All";
-      isLoadingCategory = selectedCategory != "All";
+      isLoadingRandom = selectedCategory == "所有";
+      isLoadingQuickEasy = selectedCategory != "所有";
+      isLoadingCategory = selectedCategory != "所有";
+      isLoadingAllCategory = selectedCategory == "所有";
+      searchQuery = "";
+      // _searchController.clear();
+      searchResults = [];
     });
     _fetchContent();
   }
 
   // 处理搜索功能
   void _onSearchChanged(String query) {
-    // 根据需要实现搜索功能
+    setState(() {
+      searchQuery = query.trim();
+    });
+    _fetchContent();
+  }
+
+  // 获取搜索结果
+  Future<void> _fetchSearchResults() async {
+    if (searchQuery.isEmpty) {
+      setState(() {
+        searchResults = [];
+        isLoadingSearch = false;
+      });
+      return;
+    }
+
+    setState(() {
+      isLoadingSearch = true;
+    });
+
+    try {
+      List<FoodItem> results = await DatabaseHelper().searchFoodItems(
+        searchQuery,
+        category: selectedCategory == "所有" ? null : selectedCategory,
+      );
+      setState(() {
+        searchResults = results;
+        isLoadingSearch = false;
+      });
+    } catch (e) {
+      print("搜索失败: $e");
+      setState(() {
+        searchResults = [];
+        isLoadingSearch = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    print("Building UI with categories: ${categories.map((c) => c.name).toList()}");
     return Scaffold(
       backgroundColor: kbackgroundColor,
       body: SafeArea(
@@ -115,15 +195,14 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 10),
-                headerParts(),
-                mySearchBar(),
-                const BannerToExplore(),
+                // 替换现有的搜索框为 BannerToExplore 中的搜索框
+                BannerToExplore(onSearchChanged: _onSearchChanged),
                 const Padding(
                   padding: EdgeInsets.symmetric(
                     vertical: 20,
                   ),
                   child: Text(
-                    "Categories",
+                    "菜系总览", // 将 "Categories" 替换为中文 "类别"
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -159,10 +238,12 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                // 根据选中类别展示不同内容
-                selectedCategory == "All"
+                // 根据是否有搜索查询展示不同内容
+                searchQuery.isNotEmpty
+                    ? _buildSearchContent()
+                    : (selectedCategory == "所有"
                     ? _buildAllContent()
-                    : _buildCategoryContent(),
+                    : _buildCategoryContent()),
               ],
             ),
           ),
@@ -171,22 +252,54 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
     );
   }
 
-  // 构建“All”页面内容
+  // 搜索结果内容
+  Widget _buildSearchContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "搜索结果",
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 10),
+        isLoadingSearch
+            ? const CircularProgressIndicator()
+            : searchResults.isEmpty
+            ? const Text("没有匹配的物品")
+            : GridView.builder(
+          itemCount: searchResults.length,
+          shrinkWrap: true, // 适应内容高度
+          physics: NeverScrollableScrollPhysics(), // 禁止内部滚动
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2, // 每行两个项目
+            childAspectRatio: 3 / 4, // 设置宽高比
+            crossAxisSpacing: 10, // 列间距
+            mainAxisSpacing: 10, // 行间距
+          ),
+          itemBuilder: (context, index) {
+            return FoodItemsDisplay(foodItem: searchResults[index]);
+          },
+        ),
+      ],
+    );
+  }
+
+  // 构建“所有”页面内容
   Widget _buildAllContent() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // 随机推荐部分标题
         Text(
-          "随机推荐",
+          "今日推荐",
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
-        // 根据加载状态显示内容
+        // 根据加载状态显示随机推荐内容
         isLoadingRandom
             ? const CircularProgressIndicator()
             : randomItems.isEmpty
-            ? const Text("没有随机推荐的物品")
+            ? const Text("没有推荐的物品")
             : GridView.builder(
           itemCount: randomItems.length,
           shrinkWrap: true, // 适应内容高度
@@ -201,6 +314,32 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
             return FoodItemsDisplay(foodItem: randomItems[index]);
           },
         ),
+        const SizedBox(height: 30), // 增加空间分隔
+        // 所有类别的所有物品部分标题
+        Text(
+          "所有菜品",
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 10),
+        // 根据加载状态显示所有类别的所有物品
+        isLoadingAllCategory
+            ? const CircularProgressIndicator()
+            : allCategoryItems.isEmpty
+            ? const Text("没有物品")
+            : GridView.builder(
+          itemCount: allCategoryItems.length,
+          shrinkWrap: true, // 适应内容高度
+          physics: NeverScrollableScrollPhysics(), // 禁止内部滚动
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2, // 每行两个项目
+            childAspectRatio: 3 / 4, // 设置宽高比
+            crossAxisSpacing: 10, // 列间距
+            mainAxisSpacing: 10, // 行间距
+          ),
+          itemBuilder: (context, index) {
+            return FoodItemsDisplay(foodItem: allCategoryItems[index]);
+          },
+        ),
       ],
     );
   }
@@ -210,41 +349,39 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // “Quick & Easy”物品部分
+        // “快速简单”物品部分
         Text(
-          "Quick & Easy",
+          "猜你喜欢",
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
         isLoadingQuickEasy
             ? const CircularProgressIndicator()
             : quickEasyItems.isEmpty
-            ? const Text("没有“Quick & Easy”物品")
+            ? const Text("没有物品")
             : SizedBox(
           height: 200, // 根据需要调整高度
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: quickEasyItems.length,
             itemBuilder: (context, index) {
-              return FoodItemsDisplay(
-                  foodItem: quickEasyItems[index]);
+              return FoodItemsDisplay(foodItem: quickEasyItems[index]);
             },
           ),
         ),
         SizedBox(height: quickEasyItems.isEmpty ? 0 : 20),
         // 该类别的所有物品部分
         Text(
-          "$selectedCategory 类别的所有物品",
+          "$selectedCategory总览",
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        // const SizedBox(height: 10),
-        //view all按钮
+        // 查看全部按钮
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             TextButton(
-              onPressed: () {
-                // 打开弹窗显示所有推荐物品和该类别的所有物品
+              onPressed: () async {
+                // 打开弹窗只显示该类别的所有物品，不再显示推荐物品
                 showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,
@@ -262,7 +399,7 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  "所有推荐物品",
+                                  "$selectedCategory 类别的所有物品",
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
@@ -273,49 +410,6 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
                                   onPressed: () => Navigator.pop(context),
                                 ),
                               ],
-                            ),
-                            const SizedBox(height: 10),
-                            // 所有推荐物品列表
-                            FutureBuilder<List<FoodItem>>(
-                              future: DatabaseHelper().getRecommendedItems(limit: 20),
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState == ConnectionState.waiting) {
-                                  return const Center(
-                                      child: CircularProgressIndicator());
-                                } else if (snapshot.hasError) {
-                                  return Text('错误: ${snapshot.error}');
-                                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                                  return const Text('没有推荐的物品');
-                                } else {
-                                  // 去重推荐物品
-                                  List<FoodItem> uniqueRecommended = snapshot.data!.toSet().toList();
-                                  return GridView.builder(
-                                    itemCount: uniqueRecommended.length,
-                                    shrinkWrap: true, // 自适应高度
-                                    physics: NeverScrollableScrollPhysics(),
-                                    gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
-                                      childAspectRatio: 3 / 4,
-                                      crossAxisSpacing: 10,
-                                      mainAxisSpacing: 10,
-                                    ),
-                                    itemBuilder: (context, index) {
-                                      return FoodItemsDisplay(
-                                          foodItem: uniqueRecommended[index]);
-                                    },
-                                  );
-                                }
-                              },
-                            ),
-                            const SizedBox(height: 20),
-                            Divider(),
-                            const SizedBox(height: 10),
-                            // 标题
-                            Text(
-                              "所有 $selectedCategory 类别的物品",
-                              style: TextStyle(
-                                  fontSize: 20, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 10),
                             // 该类别的所有物品列表
@@ -334,7 +428,8 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
                                   return const Text('该类别中没有物品');
                                 } else {
                                   // 去重类别物品
-                                  List<FoodItem> uniqueCategory = snapshot.data!.toSet().toList();
+                                  List<FoodItem> uniqueCategory =
+                                  snapshot.data!.toSet().toList();
                                   return GridView.builder(
                                     itemCount: uniqueCategory.length,
                                     shrinkWrap: true, // 自适应高度
@@ -362,7 +457,7 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
                 );
               },
               child: const Text(
-                "View All",
+                "查看全部", // 将 "View All" 替换为中文 "查看全部"
                 style: TextStyle(
                   color: kprimaryColor,
                   fontWeight: FontWeight.bold,
@@ -378,7 +473,8 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
             : GridView.builder(
           itemCount: categoryItems.length,
           shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(), // 禁止滚动
+          physics:
+          NeverScrollableScrollPhysics(), // 禁止滚动
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2, // 两列
             childAspectRatio: 3 / 4, // 宽高比
@@ -395,47 +491,24 @@ class _MyAppHomeScreenState extends State<MyAppHomeScreen> {
     );
   }
 
-  // 搜索栏组件
-  Padding mySearchBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 22),
-      child: TextField(
-        decoration: InputDecoration(
-          filled: true,
-          prefixIcon: const Icon(Iconsax.search_normal),
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide.none,
-          ),
-          hintText: "搜索食谱",
-          hintStyle: const TextStyle(color: Colors.grey),
-        ),
-        onChanged: (value) {
-          _onSearchChanged(value);
-        },
-      ),
-    );
-  }
-
-  // 头部组件
-  Row headerParts() {
-    return Row(
-      children: [
-        const Text(
-          "今天你想做什么？",
-          style: TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
-            height: 1,
-          ),
-        ),
-        const Spacer(),
-        MyIconButton(
-          icon: Iconsax.notification, // 指定按钮图标
-          pressed: () {},
-        ),
-      ],
-    );
-  }
+// // 头部组件（已移除）
+// Row headerParts() {
+//   return Row(
+//     children: [
+//       const Text(
+//         "今天你想做什么？",
+//         style: TextStyle(
+//           fontSize: 32,
+//           fontWeight: FontWeight.bold,
+//           height: 1,
+//         ),
+//       ),
+//       const Spacer(),
+//       MyIconButton(
+//         icon: Iconsax.notification, // 指定按钮图标
+//         pressed: () {},
+//       ),
+//     ],
+//   );
+// }
 }

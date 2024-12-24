@@ -24,8 +24,8 @@ class _AppMainScreenState extends State<AppMainScreen> {
     page = [
       const MyAppHomeScreen(),
       const FavoriteScreen(),
-      navBarPage(Iconsax.calendar5),
-      navBarPage(Iconsax.setting_21),
+      // navBarPage(Iconsax.calendar5),
+      // navBarPage(Iconsax.setting_21),
     ];
 
     super.initState();
@@ -61,26 +61,26 @@ class _AppMainScreenState extends State<AppMainScreen> {
             icon: Icon(
               selectedIndex == 0 ? Iconsax.home5 : Iconsax.home_1,
             ),
-            label: "Home",
+            label: "主页",
           ),
           BottomNavigationBarItem(
             icon: Icon(
               selectedIndex == 1 ? Iconsax.heart5 : Iconsax.heart,
             ),
-            label: "Favorite",
+            label: "我的收藏",
           ),
-          BottomNavigationBarItem(
-            icon: Icon(
-              selectedIndex == 2 ? Iconsax.calendar5 : Iconsax.calendar,
-            ),
-            label: "Meal Plan",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(
-              selectedIndex == 3 ? Iconsax.setting_21 : Iconsax.setting_2,
-            ),
-            label: "Setting",
-          ),
+          // BottomNavigationBarItem(
+          //   icon: Icon(
+          //     selectedIndex == 2 ? Iconsax.calendar5 : Iconsax.calendar,
+          //   ),
+          //   label: "Meal Plan",
+          // ),
+          // BottomNavigationBarItem(
+          //   icon: Icon(
+          //     selectedIndex == 3 ? Iconsax.setting_21 : Iconsax.setting_2,
+          //   ),
+          //   label: "Setting",
+          // ),
         ],
       ),
       body: page[selectedIndex],

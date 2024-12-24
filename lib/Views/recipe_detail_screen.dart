@@ -139,7 +139,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     ),
                   ),
                   SizedBox(height: screenHeight * 0.01),
-                  // 卡路里和时间
+                  // 菜系和口味
                   Row(
                     children: [
                       Icon(
@@ -149,7 +149,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       ),
                       SizedBox(width: screenWidth * 0.01),
                       Text(
-                        "${widget.foodItem.cal} Cal",
+                        "${widget.foodItem.category} ",
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: infoFontSize, // 响应式字体大小
@@ -164,14 +164,14 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                           fontSize: infoFontSize,
                         ),
                       ),
-                      Icon(
-                        Iconsax.clock,
-                        size: screenWidth * 0.05,
-                        color: Colors.grey,
-                      ),
-                      SizedBox(width: screenWidth * 0.005),
+                      // Icon(
+                      //   Iconsax.clock,
+                      //   size: screenWidth * 0.05,
+                      //   color: Colors.grey,
+                      // ),
+                      // SizedBox(width: screenWidth * 0.005),
                       Text(
-                        "${widget.foodItem.time} Min",
+                        "${widget.foodItem.taste} ",
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: infoFontSize,
@@ -182,49 +182,60 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   ),
                   SizedBox(height: screenHeight * 0.01),
                   // 评分
-                  Row(
-                    children: [
-                      Icon(
-                        Iconsax.star1,
-                        color: Colors.amberAccent,
-                        size: screenWidth * 0.05,
-                      ),
-                      SizedBox(width: screenWidth * 0.01),
-                      Text(
-                        widget.foodItem.rate.toString(),
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: infoFontSize,
-                        ),
-                      ),
-                      Text(
-                        "/5",
-                        style: TextStyle(
-                          fontSize: infoFontSize,
-                        ),
-                      ),
-                      SizedBox(width: screenWidth * 0.01),
-                      Text(
-                        "${widget.foodItem.reviews} Reviews",
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: infoFontSize,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: screenHeight * 0.03),
+                  // Row(
+                  //   children: [
+                  //     Icon(
+                  //       Iconsax.star1,
+                  //       color: Colors.amberAccent,
+                  //       size: screenWidth * 0.05,
+                  //     ),
+                  //     SizedBox(width: screenWidth * 0.01),
+                  //     Text(
+                  //       widget.foodItem.rate.toString(),
+                  //       style: TextStyle(
+                  //         fontWeight: FontWeight.bold,
+                  //         fontSize: infoFontSize,
+                  //       ),
+                  //     ),
+                  //     Text(
+                  //       "/5",
+                  //       style: TextStyle(
+                  //         fontSize: infoFontSize,
+                  //       ),
+                  //     ),
+                  //     SizedBox(width: screenWidth * 0.01),
+                  //     Text(
+                  //       "${widget.foodItem.reviews} Reviews",
+                  //       style: TextStyle(
+                  //         color: Colors.grey,
+                  //         fontSize: infoFontSize,
+                  //       ),
+                  //     ),
+                  //   ],
+                  // ),
+                  // SizedBox(height: screenHeight * 0.03),
 
                   // 添加“简介”部分
-                  SectionBox(
-                    title: "简介",
-                    content: widget.foodItem.introduction,
-                  ),
+                  if (widget.foodItem.introduction != null && widget.foodItem.introduction!.trim().isNotEmpty)
+                    SectionBox(
+                      title: "简介",
+                      content: widget.foodItem.introduction!,
+                    ),
+                  if (widget.foodItem.introduction != null && widget.foodItem.introduction!.trim().isNotEmpty)
                   SizedBox(height: screenHeight * 0.02),
+
+                  //添加原料部分
+                  if (widget.foodItem.source != null && widget.foodItem.source!.trim().isNotEmpty)
+                  SectionBox(
+                    title: "需要准备的原料",
+                    content: widget.foodItem.source!,
+                  ),
+                  if (widget.foodItem.source != null && widget.foodItem.source!.trim().isNotEmpty)
+                  SizedBox(height: screenHeight * 0.03),
 
                   // 添加“具体内容”部分
                   SectionBox(
-                    title: "具体内容",
+                    title: "制作步骤",
                     content: widget.foodItem.content,
                   ),
                   SizedBox(height: screenHeight * 0.03),

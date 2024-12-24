@@ -67,11 +67,11 @@ class DatabaseHelper {
   // 创建数据库表
   FutureOr<void> _onCreate(Database db, int version) async {
     print("创建数据库表...");
-    // 创建食物类别表
+    // 创建食物类别表，确保 name 字段唯一
     await db.execute('''
       CREATE TABLE IF NOT EXISTS food_category (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL
+        name TEXT NOT NULL UNIQUE
       );
     ''');
 
@@ -86,8 +86,10 @@ class DatabaseHelper {
         rate REAL NOT NULL,
         reviews INTEGER NOT NULL,
         time INTEGER NOT NULL,
-        introduction TEXT NOT NULL,
-        content TEXT NOT NULL
+        introduction TEXT,
+        content TEXT NOT NULL,
+        taste TEXT,
+        source TEXT
       );
     ''');
 
@@ -108,7 +110,7 @@ class DatabaseHelper {
   FutureOr<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     print("升级数据库，从版本 $oldVersion 到 $newVersion");
     if (oldVersion < 2) {
-      // 示例：插入推荐食物项
+      // 示例：插入推荐食物项，确保 'rate' 是数值类型
       await db.execute('''
         INSERT INTO Complete_Flutter_App (name, cal, category, image_path, rate, reviews, time)
         VALUES 
@@ -122,19 +124,59 @@ class DatabaseHelper {
 
   // 插入初始数据（可选）
   Future<void> _insertInitialData(Database db) async {
-    // 插入类别数据
-    await db.insert('food_category', {'name': 'All'});
-    await db.insert('food_category', {'name': 'Breakfast'});
-    await db.insert('food_category', {'name': 'Lunch'});
-    await db.insert('food_category', {'name': 'Dinner'});
+    // 插入类别数据，确保不重复插入 "所有"
+    List<String> initialCategories = [
+      '所有',
+      '川菜',
+      '鲁菜',
+      '粤菜',
+      '苏菜',
+      '闽菜',
+      '浙菜',
+      '湘菜',
+      '徽菜',
+    ];
+
+    for (String category in initialCategories) {
+      try {
+        await db.insert(
+          'food_category',
+          {'name': category},
+          conflictAlgorithm: ConflictAlgorithm.ignore, // 避免重复插入
+        );
+        print("插入类别: $category");
+      } catch (e) {
+        // 如果类别已存在，则忽略错误
+        print("类别 '$category' 已存在，跳过插入。");
+      }
+    }
+
     // 插入更多类别或食物项
     print("初始数据已插入");
+  }
+
+  // 插入单个类别
+  Future<void> insertCategory(model.Category category) async {
+    final db = await database;
+    try {
+      await db.insert(
+        'food_category',
+        {'name': category.name}, // 只插入 'name'，不插入 'id'
+        conflictAlgorithm: ConflictAlgorithm.ignore, // 避免重复插入
+      );
+      print("插入类别: ${category.name}");
+    } catch (e) {
+      print("插入类别失败: $e");
+    }
   }
 
   // 获取所有类别
   Future<List<model.Category>> getCategories() async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('food_category');
+    final List<Map<String, dynamic>> maps = await db.query(
+      'food_category',
+      orderBy: "CASE WHEN name = '所有' THEN 0 ELSE 1 END, name ASC", // 确保 '所有' 排在前面
+    );
 
     if (maps.isEmpty) {
       print('food_category 表中没有数据');
@@ -145,9 +187,26 @@ class DatabaseHelper {
       }
     }
 
-    return List.generate(maps.length, (i) {
-      return model.Category.fromMap(maps[i]);
+    // 使用 Set 确保类别名称唯一
+    final uniqueNames = <String>{};
+    final uniqueCategories = <model.Category>[];
+
+    for (var map in maps) {
+      final name = map['name'] as String;
+      if (!uniqueNames.contains(name)) {
+        uniqueNames.add(name);
+        uniqueCategories.add(model.Category.fromMap(map));
+      }
+    }
+
+    // 额外排序，确保 '所有' 排在第一位
+    uniqueCategories.sort((a, b) {
+      if (a.name == '所有') return -1;
+      if (b.name == '所有') return 1;
+      return a.name.compareTo(b.name);
     });
+
+    return uniqueCategories;
   }
 
   // 获取食物项列表，可按类别过滤
@@ -155,7 +214,7 @@ class DatabaseHelper {
     final db = await database;
     List<Map<String, dynamic>> maps;
 
-    if (category == null || category == "All") {
+    if (category == null || category == "所有") {
       maps = await db.query('Complete_Flutter_App');
     } else {
       maps = await db.query(
@@ -174,9 +233,17 @@ class DatabaseHelper {
       }
     }
 
-    return List.generate(maps.length, (i) {
-      return FoodItem.fromMap(maps[i]);
-    });
+    // 使用 try-catch 以防某条数据有问题
+    List<FoodItem> foodItems = [];
+    for (var map in maps) {
+      try {
+        foodItems.add(FoodItem.fromMap(map));
+      } catch (e) {
+        print("Error parsing FoodItem: $e");
+      }
+    }
+
+    return foodItems;
   }
 
   // 获取单个食物项，通过 id_every
@@ -196,15 +263,14 @@ class DatabaseHelper {
   }
 
   // 搜索食物项
-  Future<List<FoodItem>> searchFoodItems(String query,
-      {String? category}) async {
+  Future<List<FoodItem>> searchFoodItems(String query, {String? category}) async {
     final db = await database;
     List<Map<String, dynamic>> maps;
 
     String whereClause = '';
     List<dynamic> whereArgs = [];
 
-    if (category != null && category != "All") {
+    if (category != null && category != "所有") {
       whereClause += 'category = ?';
       whereArgs.add(category);
     }
@@ -232,9 +298,17 @@ class DatabaseHelper {
       }
     }
 
-    return List.generate(maps.length, (i) {
-      return FoodItem.fromMap(maps[i]);
-    });
+    // 使用 try-catch 以防某条数据有问题
+    List<FoodItem> foodItems = [];
+    for (var map in maps) {
+      try {
+        foodItems.add(FoodItem.fromMap(map));
+      } catch (e) {
+        print("Error parsing FoodItem: $e");
+      }
+    }
+
+    return foodItems;
   }
 
   // 获取随机物品
@@ -254,9 +328,9 @@ class DatabaseHelper {
     final db = await database;
     List<FoodItem> randomItems = [];
 
-    // 获取所有类别，排除 "All"
+    // 获取所有类别，排除 "所有"
     List<model.Category> categories = await getCategories();
-    categories = categories.where((category) => category.name != 'All').toList();
+    categories = categories.where((category) => category.name != '所有').toList();
 
     for (var category in categories) {
       List<Map<String, dynamic>> maps = await db.query(
@@ -275,7 +349,7 @@ class DatabaseHelper {
     return randomItems;
   }
 
-  // 获取“Quick & Easy”物品
+  // 获取“快速简单”物品
   Future<List<FoodItem>> getQuickEasyItems(String category, {int maxCalories = 500, int maxTime = 30}) async {
     final db = await database;
     List<Map<String, dynamic>> maps = await db.query(
@@ -366,8 +440,16 @@ class DatabaseHelper {
       }
     }
 
-    return List.generate(maps.length, (i) {
-      return FoodItem.fromMap(maps[i]);
-    });
+    // 使用 try-catch 以防某条数据有问题
+    List<FoodItem> favoriteItems = [];
+    for (var map in maps) {
+      try {
+        favoriteItems.add(FoodItem.fromMap(map));
+      } catch (e) {
+        print("Error parsing Favorite FoodItem: $e");
+      }
+    }
+
+    return favoriteItems;
   }
 }

@@ -82,7 +82,7 @@ class FoodItemsDisplay extends StatelessWidget {
                       ),
                       SizedBox(width: screenWidth * 0.01),
                       Text(
-                        "${foodItem.cal} Cal",
+                        "${foodItem.category} ",
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: fontSize * 0.85,
@@ -97,14 +97,14 @@ class FoodItemsDisplay extends StatelessWidget {
                           fontSize: fontSize * 0.85,
                         ),
                       ),
-                      Icon(
-                        Iconsax.clock,
-                        size: iconSize,
-                        color: Colors.grey,
-                      ),
-                      SizedBox(width: screenWidth * 0.005),
+                      // Icon(
+                      //   Iconsax.clock,
+                      //   size: iconSize,
+                      //   color: Colors.grey,
+                      // ),
+                      // SizedBox(width: screenWidth * 0.005),
                       Text(
-                        "${foodItem.time} Min",
+                        "${foodItem.taste}",
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: fontSize * 0.85,

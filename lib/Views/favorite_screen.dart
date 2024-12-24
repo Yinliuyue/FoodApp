@@ -26,7 +26,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
         backgroundColor: kbackgroundColor,
         centerTitle: true,
         title: const Text(
-          "Favorites",
+          "我的收藏",
           style: TextStyle(
             fontWeight: FontWeight.bold,
           ),
@@ -35,7 +35,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
       body: favoriteItems.isEmpty
           ? const Center(
         child: Text(
-          "No Favorites yet",
+          "还没有收藏的菜品",
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -93,7 +93,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                                 color: Colors.grey,
                               ),
                               Text(
-                                "${favorite.cal} Cal",
+                                "${favorite.category}",
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
@@ -107,14 +107,8 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                                   color: Colors.grey,
                                 ),
                               ),
-                              const Icon(
-                                Iconsax.clock,
-                                size: 16,
-                                color: Colors.grey,
-                              ),
-                              const SizedBox(width: 5),
                               Text(
-                                "${favorite.time} Min",
+                                "${favorite.taste}",
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
